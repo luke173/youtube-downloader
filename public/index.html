@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>YouTube 下載工具</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        text-align: center;
+        padding: 50px;
+        background-color: #f4f4f4;
+      }
+      h2 {
+        font-size: 2.5em;
+        color: #333;
+      }
+      form {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        display: inline-block;
+      }
+      input[type="text"],
+      select,
+      button {
+        margin: 10px 0;
+        padding: 10px;
+        font-size: 1.2em;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      input[type="text"] {
+        width: 600px; /* 加長到 600px */
+      }
+      select,
+      button {
+        width: 300px;
+      }
+      button {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      #qualitySection {
+        display: none;
+      }
+      #errorMessage {
+        color: red;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>YouTube 下載工具</h2>
+    <form action="/download" method="post">
+      <input type="text" name="url" id="videoUrl" placeholder="輸入 YouTube 網址" required onblur="fetchQualities()" /><br>
+      <select name="format" id="format" onchange="toggleQualitySection()">
+        <option value="mp3">MP3</option>
+        <option value="mp4">MP4</option>
+      </select><br>
+      <div id="qualitySection">
+        <select name="quality" id="quality">
+          <!-- 動態填充 -->
+        </select><br>
+      </div>
+      <button type="submit">下載</button>
+    </form>
+    <p id="errorMessage"></p>
+
+    <script>
+      function toggleQualitySection() {
+        const format = document.getElementById('format').value;
+        const qualitySection = document.getElementById('qualitySection');
+        qualitySection.style.display = format === 'mp4' ? 'block' : 'none';
+      }
+
+      async function fetchQualities() {
+        const url = document.getElementById('videoUrl').value;
+        const qualitySection = document.getElementById('qualitySection');
+        const qualitySelect = document.getElementById('quality');
+        const errorMessage = document.getElementById('errorMessage');
+
+        if (!url) {
+          qualitySelect.innerHTML = '';
+          qualitySection.style.display = 'none';
+          errorMessage.style.display = 'none';
+          return;
+        }
+
+        try {
+          const response = await fetch('/get-qualities', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+          });
+          const data = await response.json();
+
+          if (data.error) {
+            errorMessage.textContent = data.error;
+            errorMessage.style.display = 'block';
+            qualitySelect.innerHTML = '';
+            qualitySection.style.display = 'none';
+          } else {
+            errorMessage.style.display = 'none';
+            qualitySelect.innerHTML = data.qualities.map(q => `<option value="${q}">${q}</option>`).join('');
+            if (data.qualities.length > 0 && document.getElementById('format').value === 'mp4') {
+              qualitySection.style.display = 'block';
+            }
+          }
+        } catch (error) {
+          errorMessage.textContent = '無法獲取畫質，請檢查網址';
+          errorMessage.style.display = 'block';
+          qualitySelect.innerHTML = '';
+          qualitySection.style.display = 'none';
+        }
+      }
+
+      window.onload = toggleQualitySection;
+    </script>
+  </body>
+</html>
